@@ -75,7 +75,7 @@ public class K9TeleOp extends OpMode {
 	 * Constructor
 	 */
 	public K9TeleOp() {
-
+	motorRight.setPower(1);
 	}
 
 	/*
