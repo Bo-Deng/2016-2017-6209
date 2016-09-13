@@ -29,7 +29,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.qualcomm.ftcrobotcontroller.opmodes;
+package com.qualcomm.ftcrobotcontroller.opmodes.DefaultCodeSamples;
 
 import android.app.Activity;
 import android.graphics.Color;
@@ -39,22 +39,42 @@ import com.qualcomm.ftccommon.DbgLog;
 import com.qualcomm.ftcrobotcontroller.R;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
+import com.qualcomm.robotcore.hardware.DigitalChannelController;
 
 /*
  *
  * This is an example LinearOpMode that shows how to use
- * a Modern Robotics Color Sensor.
+ * the Adafruit RGB Sensor.  It assumes that the I2C
+ * cable for the sensor is connected to an I2C port on the
+ * Core Device Interface Module.
  *
- * The op mode assumes that the color sensor
- * is configured with a name of "mr".
+ * It also assuems that the LED pin of the sensor is connected
+ * to the digital signal pin of a digital port on the
+ * Core Device Interface Module.
+ *
+ * You can use the digital port to turn the sensor's onboard
+ * LED on or off.
+ *
+ * The op mode assumes that the Core Device Interface Module
+ * is configured with a name of "dim" and that the Adafruit color sensor
+ * is configured as an I2C device with a name of "color".
+ *
+ * It also assumes that the LED pin of the RGB sensor
+ * is connected to the signal pin of digital port #5 (zero indexed)
+ * of the Core Device Interface Module.
  *
  * You can use the X button on either gamepad to turn the LED on and off.
  *
  */
-public class MRRGBExample extends LinearOpMode {
+public class AdafruitRGBExample extends LinearOpMode {
 
   ColorSensor sensorRGB;
+  DeviceInterfaceModule cdim;
 
+  // we assume that the LED pin of the RGB sensor is connected to
+  // digital port 5 (zero indexed).
+  static final int LED_CHANNEL = 5;
 
   @Override
   public void runOpMode() throws InterruptedException {
@@ -63,14 +83,22 @@ public class MRRGBExample extends LinearOpMode {
     // to the log file.
     hardwareMap.logDevices();
 
+    // get a reference to our DeviceInterfaceModule object.
+    cdim = hardwareMap.deviceInterfaceModule.get("dim");
+
+    // set the digital channel to output mode.
+    // remember, the Adafruit sensor is actually two devices.
+    // It's an I2C sensor and it's also an LED that can be turned on or off.
+    cdim.setDigitalChannelMode(LED_CHANNEL, DigitalChannelController.Mode.OUTPUT);
+
     // get a reference to our ColorSensor object.
-    sensorRGB = hardwareMap.colorSensor.get("mr");
+    sensorRGB = hardwareMap.colorSensor.get("color");
 
     // bEnabled represents the state of the LED.
     boolean bEnabled = true;
 
     // turn the LED on in the beginning, just so user will know that the sensor is active.
-    sensorRGB.enableLed(true);
+    cdim.setDigitalChannelState(LED_CHANNEL, bEnabled);
 
     // wait one cycle.
     waitOneFullHardwareCycle();
@@ -112,7 +140,8 @@ public class MRRGBExample extends LinearOpMode {
         bEnabled = true;
 
         // turn on the LED.
-        sensorRGB.enableLed(bEnabled);
+        cdim.setDigitalChannelState(LED_CHANNEL, bEnabled);
+
       } else if (bCurrState == false && bCurrState != bPrevState)  {
         // button is transitioning to a released state.
 
@@ -126,12 +155,11 @@ public class MRRGBExample extends LinearOpMode {
         bEnabled = false;
 
         // turn off the LED.
-        sensorRGB.enableLed(false);
+        cdim.setDigitalChannelState(LED_CHANNEL, bEnabled);
       }
 
       // convert the RGB values to HSV values.
-      //Color.RGBToHSV((sensorRGB.red() * 8), (sensorRGB.green() * 8), (sensorRGB.blue() * 8), hsvValues);
-      Color.RGBToHSV(sensorRGB.red()*8, sensorRGB.green()*8, sensorRGB.blue()*8, hsvValues);
+      Color.RGBToHSV((sensorRGB.red() * 255) / 800, (sensorRGB.green() * 255) / 800, (sensorRGB.blue() * 255) / 800, hsvValues);
 
       // send the info back to driver station using telemetry function.
       telemetry.addData("Clear", sensorRGB.alpha());
